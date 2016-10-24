@@ -1,0 +1,27 @@
+<ion-header [hidden]="!isLoggedIn">
+  <ion-navbar >
+    <ion-title>
+      Strala
+    </ion-title>
+  </ion-navbar>
+</ion-header>
+
+<ion-content padding text-center>
+  <h1 padding>
+    Strala
+  </h1>
+
+  <p padding>
+    Welcome to Strala - where coding and fitness collide
+  </p>
+
+  
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    
+  <button bottom ion-button full large color="danger" [hidden]="isLoggedIn"  (click)="authWithStrava()">Sign in with Strava</button>
+  
+  </ion-toolbar>
+</ion-footer>
