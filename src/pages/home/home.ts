@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { InAppBrowser } from 'ionic-native';
 import { Http, RequestOptions, Headers } from '@angular/http';
-
 import { NavController } from 'ionic-angular';
 
 @Component({
@@ -11,18 +10,14 @@ import { NavController } from 'ionic-angular';
 export class HomePage {
 
   isLoggedIn: boolean;
-  client_id = 9;
-  client_secret = "test";
-  data = {
-    response: ""
-  };
+  clientId = 1;
+  apiKey = '';
+  data;
 
   constructor(public navCtrl: NavController, private http: Http) {
     this.isLoggedIn = false;
     this.http = http;
   }
-
-
 
   authWithStrava(): void {
     this.authorise().then(result => {
@@ -39,35 +34,32 @@ export class HomePage {
 
   exchangeToken(code: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      var url = "https://www.strava.com/oauth/token";
+      var url = "/api/strava-exchange";
       var data = JSON.stringify({
-        client_id: this.client_id,
-        client_secret: this.client_secret,
         code: code,
-      })
-      console.log(data);
+      });
 
-      let headers = new Headers();
-      headers.append("Access-Control-Allow-Origin","https://www.strava.com")
-      let options = new RequestOptions({headers: headers});
-      
-      this.http.post(url, data, options).subscribe(data => {
-        console.log(data);
-        //this.data.response = data.json;
-        resolve();
-      }, error => {
-        debugger;
-        console.log("Ooops");
-        console.log(error);
-        reject(error);
-      })
+      let customHeaders = new Headers();
+      customHeaders.set("x-api-key", this.apiKey);
+      customHeaders.set("content-type", "application/json");
+
+      this.http.post(url, data, { headers: customHeaders })
+        .subscribe(data => {
+          this.data = data.json;
+          console.log(this.data.access_token);
+          this.isLoggedIn = true;
+          resolve();
+        }, error => {
+          console.log("token exchange failed");
+          reject(error);
+        })
     })
   }
 
   authorise(): Promise<string> {
 
     return new Promise((resolve, reject) => {
-      var url = "https://www.strava.com/oauth/authorize?client_id=" + this.client_id + "&response_type=code&redirect_uri=http://localhost/token_exchange";
+      var url = "https://www.strava.com/oauth/authorize?client_id=" + this.clientId + "&response_type=code&redirect_uri=http://localhost/token_exchange";
       let browserRef = window.open(url, '_blank', 'location=no,clearsessioncache=yes,clearcache=yes');
       browserRef.addEventListener('loadstart', (event) => {
         let url: string = (<any>event).url;
