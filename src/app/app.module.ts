@@ -2,6 +2,8 @@ import { NgModule } from '@angular/core';
 import { IonicApp, IonicModule } from 'ionic-angular';
 import { MyApp } from './app.component';
 import { HomePage } from '../pages/home/home';
+import { Storage } from '@ionic/storage';
+import { Strava } from '../providers/strava';
 
 @NgModule({
   declarations: [
@@ -16,6 +18,6 @@ import { HomePage } from '../pages/home/home';
     MyApp,
     HomePage
   ],
-  providers: []
+  providers: [Strava, Storage]
 })
 export class AppModule {}
