@@ -17,12 +17,22 @@ export class HomePage {
   constructor(public navCtrl: NavController, public storage: Storage, private stravaService: Strava) { };
 
   authWithStrava(): void {
-    this.stravaService.authFlow().then(result => {
-       console.log('logged in')
-       this.storage.set('isLoggedIn', true);
-       this.isLoggedIn = true;
+    this.stravaService.authFlow().then(result => this.displayLoggedIn(result))
+      .then(x => this.stravaService.processActivities())
+      .then(x => console.log('got activities'));
+  }
 
-       this.name = result.athlete.firstname + result.athlete.lastname;
-    });
+  displayLoggedIn(obj: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      console.log('logged in')
+      this.storage.set('isLoggedIn', true);
+      this.isLoggedIn = true;
+
+      this.storage.set('access_token', obj.access_token)
+      this.storage.set('profile', JSON.stringify(obj))
+
+      this.name = obj.athlete.firstname + obj.athlete.lastname;
+      resolve();
+    })
   }
 }

@@ -7,7 +7,7 @@ import moment from 'moment'
 import { Activity } from '../models/activity'
 import { TypeSummary, RunSummary } from '../models/typeSummary'
 import { Summary } from '../models/Summary'
-import * as _ from 'lodash'
+import _ from 'lodash'
 
 @Injectable()
 export class Strava {
@@ -15,12 +15,10 @@ export class Strava {
     constructor(public http: Http, public storage: Storage) {
     }
 
-    isLoggedIn: boolean;
-    clientId = 1;
-    apiKey = '';
-    data;
-
-    private baseUrl = "https://www.strava.com/api/v3";
+    isLoggedIn: boolean
+    clientId = 1
+    apiKey = ''
+    data
 
     authFlow(): Promise<any> {
         return this.authorise()
@@ -31,43 +29,62 @@ export class Strava {
         return this.getAccessToken()
             .then(token => this.fetchActivities(token))
             .then(activities => this.buildSummary(activities))
+            .then(summary => this.persistSummary(summary));
     }
 
-    private buildSummary(activities: Activity[]): any {
-        var rides = _.filter(activities, x => x.type === "Ride");
+    private persistSummary(summary: Summary) {
+        console.log(JSON.stringify(summary))
+
+        this.storage.set('summary', summary);
+    }
+
+    private buildSummary(activities: Array<Activity>): any {
+        console.log(JSON.stringify(activities));
+
+        var groups = _.groupBy(activities, 'type');
+        console.log(JSON.stringify(groups));
+
+        var rides = groups['Ride'];
         var rideSummary = this.buildTypeSummary(rides)
 
-        var runs = _.filter(activities, x => x.type === "Run");
+        var runs = groups['Run'];
         var runSummary = this.buildTypeSummary(runs)
 
         var summary = new Summary([rideSummary, runSummary]);
-
         return summary;
     }
 
-    fetchActivities(token: string): Promise<Activity[]> {
-        var url = this.baseUrl + "/athelete/activites";
+    fetchActivities(token: string): Promise<Array<Activity>> {
+        var url = '/strava/athlete/activities';
         return new Promise((resolve, reject) => {
 
             let customHeaders = new Headers();
-            customHeaders.set("Authorization", "Bearer " + this.getAccessToken());
+            customHeaders.set('Authorization', 'Bearer ' + token);
 
-            url = url + '?after=' + this.unixSeconds(-90, 'days');
+            //url = url + '?after=' + this.unixSeconds(-90, 'days');
 
-            this.http.get(url, { headers: customHeaders }).map(res => resolve(res.json()));
+            this.http.get(url, { headers: customHeaders })
+                .map(res => res.json())
+                .subscribe(
+                    data => resolve(data),
+                    error => reject(error)
+                )
         })
     }
 
-    private buildTypeSummary(activities: Activity[]): TypeSummary {
+    private buildTypeSummary(activities: Array<Activity>): TypeSummary {
+        if (!activities || activities.length < 1) return null;
+
         let averageNum = activities.length / 7;
 
         let averageDist = _.mean(_.map(activities, _.property('distance')));
         let averagePace = _.mean(_.map(activities, _.property('average_speed')));
-        let topSpeed = _.maxBy(activities, 'max_speed').max_speed;
-        let farthest = _.maxBy(activities, 'distance').distance;
-        let longestTime = _.maxBy(activities, 'elapsed_time').elapsed_time;
+        let topSpeed = <number>_.max(_.map(activities, _.property('max_speed')));
+        let farthest = <number>_.max(_.map(activities, _.property('distance')));
+        let longestTime = <number>_.max(_.map(activities, _.property('elapsed_time')));
 
-        if (activities[0].type === "Run") {
+        var randomActivity = _.sample(activities);
+        if (randomActivity && randomActivity.type === 'Run') {
             var distanceInMetres = _.sumBy(activities, 'distance');
             var timeInMinutes = _.sumBy(activities, 'elapsed_time') / 60;
 
@@ -85,13 +102,13 @@ export class Strava {
     }
 
     private getAccessToken(): Promise<string> {
-        return this.storage.get("access_token");
+        console.log('getting access token')
+        return this.storage.get('access_token');
     }
 
     private authorise(): Promise<string> {
-
         return new Promise((resolve, reject) => {
-            let url = "https://www.strava.com/oauth/authorize?client_id=" + this.clientId + "&response_type=code&redirect_uri=http://localhost/token_exchange";
+            let url = 'https://www.strava.com/oauth/authorize?client_id=' + this.clientId + '&response_type=code&redirect_uri=http://localhost/token_exchange';
             let browserRef = window.open(url, '_blank', 'location=no,clearsessioncache=yes,clearcache=yes');
             browserRef.addEventListener('loadstart', (event) => {
                 let url: string = (<any>event).url;
@@ -119,22 +136,22 @@ export class Strava {
 
     private exchangeToken(code: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            let url = "/api/strava-exchange";
+            let url = '/api/strava-exchange';
             let data = JSON.stringify({
                 code: code,
             });
             console.log(data)
 
             let customHeaders = new Headers();
-            customHeaders.set("x-api-key", this.apiKey);
-            customHeaders.set("content-type", "application/json");
+            customHeaders.set('x-api-key', this.apiKey);
+            customHeaders.set('content-type', 'application/json');
 
             this.http.post(url, data, { headers: customHeaders })
                 .subscribe(data => {
                     this.data = data.json();
                     resolve(this.data);
                 }, error => {
-                    console.log("token exchange failed");
+                    console.log('token exchange failed');
                     reject(error);
                 })
         })

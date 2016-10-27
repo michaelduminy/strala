@@ -6,7 +6,11 @@
   "proxies": [
     {
       "path": "/api",
-      "proxyUrl": "my-api"
+      "proxyUrl": "api"
+    },
+    {
+      "path": "/strava",
+      "proxyUrl": "https://www.strava.com/api/v3"
     }
   ]
 }
