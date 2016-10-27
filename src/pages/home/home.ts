@@ -1,8 +1,6 @@
-import { Component } from '@angular/core';
-import { InAppBrowser } from 'ionic-native';
-import { Http, RequestOptions, Headers } from '@angular/http';
-import { NavController } from 'ionic-angular';
-import { Storage } from '@ionic/storage';
+import { Component } from '@angular/core'
+import { NavController } from 'ionic-angular'
+import { Storage } from '@ionic/storage'
 import { Strava } from '../../providers/strava'
 
 @Component({
@@ -11,28 +9,21 @@ import { Strava } from '../../providers/strava'
 })
 export class HomePage {
 
-  isLoggedIn: boolean;
-  name: string;
+  profile: any
+  name: string
+  pic: string
 
   constructor(public navCtrl: NavController, public storage: Storage, private stravaService: Strava) { };
 
-  authWithStrava(): void {
-    this.stravaService.authFlow().then(result => this.displayLoggedIn(result))
-      .then(x => this.stravaService.processActivities())
-      .then(x => console.log('got activities'));
-  }
+  ionViewDidLoad() {
+    console.log('Hello Home Page');
 
-  displayLoggedIn(obj: any): Promise<any> {
-    return new Promise((resolve, reject) => {
-      console.log('logged in')
-      this.storage.set('isLoggedIn', true);
-      this.isLoggedIn = true;
+    this.storage.get('profile').then(x => {
+      this.profile = JSON.parse(x)
+      this.name = this.profile.firstname + this.profile.lastname;
+      this.pic = this.profile.profile_medium;
+    }) 
 
-      this.storage.set('access_token', obj.access_token)
-      this.storage.set('profile', JSON.stringify(obj))
-
-      this.name = obj.athlete.firstname + obj.athlete.lastname;
-      resolve();
-    })
+    this.stravaService.processNewActivities()
   }
 }

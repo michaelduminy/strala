@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 import { Http, RequestOptions, Headers } from '@angular/http'
+import { Loading } from 'ionic-angular'
 import { Storage } from '@ionic/storage'
 import 'rxjs/add/operator/map'
 import { Observable } from 'rxjs/Observable'
@@ -15,17 +16,17 @@ export class Strava {
     constructor(public http: Http, public storage: Storage) {
     }
 
-    isLoggedIn: boolean
-    clientId = 1
-    apiKey = ''
-    data
+    private clientId = 1;
+    private apiKey = '';
 
-    authFlow(): Promise<any> {
+    startAuthFlow(loader: Loading): Promise<any> {
         return this.authorise()
-            .then(result => this.exchangeToken(result))
+            .then(code => {
+                return Promise.all([loader.present(), this.exchangeToken(code)])
+            })
     }
 
-    processActivities(): Promise<any> {
+    processNewActivities(): Promise<any> {
         return this.getAccessToken()
             .then(token => this.fetchActivities(token))
             .then(activities => this.buildSummary(activities))
@@ -39,8 +40,6 @@ export class Strava {
     }
 
     private buildSummary(activities: Array<Activity>): any {
-        console.log(JSON.stringify(activities));
-
         var groups = _.groupBy(activities, 'type');
         console.log(JSON.stringify(groups));
 
@@ -66,8 +65,8 @@ export class Strava {
             this.http.get(url, { headers: customHeaders })
                 .map(res => res.json())
                 .subscribe(
-                    data => resolve(data),
-                    error => reject(error)
+                data => resolve(data),
+                error => reject(error)
                 )
         })
     }
@@ -85,13 +84,12 @@ export class Strava {
 
         var randomActivity = _.sample(activities);
         if (randomActivity && randomActivity.type === 'Run') {
-            var distanceInMetres = _.sumBy(activities, 'distance');
-            var timeInMinutes = _.sumBy(activities, 'elapsed_time') / 60;
 
-            // average vdot? per week? going with total for now
-            var vdot = (-4.6 + (0.182258 * (distanceInMetres / timeInMinutes)) + (0.000104 * (distanceInMetres / timeInMinutes) * (distanceInMetres / timeInMinutes))) / (0.8 + (Math.exp(-0.012778 * timeInMinutes) * 0.1894394) + (Math.exp(-0.1932605 * timeInMinutes) * 0.2989558));
+            var maxvdot = _.max(_.map(activities, x => {
+                return (-4.6 + (0.182258 * (x.distance / x.elapsed_time)) + (0.000104 * (x.distance / x.elapsed_time) * (x.distance / x.elapsed_time))) / (0.8 + (Math.exp(-0.012778 * x.elapsed_time) * 0.1894394) + (Math.exp(-0.1932605 * x.elapsed_time) * 0.2989558))
+            }))
 
-            return new RunSummary(averageNum, averageDist, averagePace, topSpeed, farthest, longestTime, vdot);
+            return new RunSummary(averageNum, averageDist, averagePace, topSpeed, farthest, longestTime, maxvdot);
         }
 
         return new TypeSummary(averageNum, averageDist, averagePace, topSpeed, farthest, longestTime);
@@ -147,9 +145,9 @@ export class Strava {
             customHeaders.set('content-type', 'application/json');
 
             this.http.post(url, data, { headers: customHeaders })
+                .map(res => res.json())
                 .subscribe(data => {
-                    this.data = data.json();
-                    resolve(this.data);
+                    resolve(data);
                 }, error => {
                     console.log('token exchange failed');
                     reject(error);
