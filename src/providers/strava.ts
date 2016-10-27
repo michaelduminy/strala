@@ -1,46 +1,94 @@
-import { Injectable } from '@angular/core';
-import { Http, RequestOptions, Headers } from '@angular/http';
-import 'rxjs/add/operator/map';
+import { Injectable } from '@angular/core'
+import { Http, RequestOptions, Headers } from '@angular/http'
+import { Storage } from '@ionic/storage'
+import 'rxjs/add/operator/map'
+import { Observable } from 'rxjs/Observable'
+import moment from 'moment'
+import { Activity } from '../models/activity'
+import { TypeSummary, RunSummary } from '../models/typeSummary'
+import { Summary } from '../models/Summary'
+import * as _ from 'lodash'
 
-/*
-  Generated class for the Strava provider.
-
-  See https://angular.io/docs/ts/latest/guide/dependency-injection.html
-  for more info on providers and Angular 2 DI.
-*/
 @Injectable()
 export class Strava {
 
-  constructor(public http: Http) {
-    console.log('Hello Strava Provider');
-  }
+    constructor(public http: Http, public storage: Storage) {
+    }
 
-isLoggedIn: boolean;
+    isLoggedIn: boolean;
     clientId = 1;
     apiKey = '';
     data;
 
+    private baseUrl = "https://www.strava.com/api/v3";
+
     authFlow(): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.authorise().then(result => {
-                console.log("Authorization code: " + result);
-                this.exchangeToken(result).then(result => {
-                    console.log("token exchanged", result)
-                    resolve(result);
-                }, error => {
-                    console.log("token exchange failed")
-                    console.log(error);
-                    reject(error);
-                })
-            }, error => {
-                console.log("authorisation failed")
-                console.log(error);
-                reject(error);
-            })
-        });
+        return this.authorise()
+            .then(result => this.exchangeToken(result))
     }
 
-    authorise(): Promise<string> {
+    processActivities(): Promise<any> {
+        return this.getAccessToken()
+            .then(token => this.fetchActivities(token))
+            .then(activities => this.buildSummary(activities))
+    }
+
+    private buildSummary(activities: Activity[]): any {
+        var rides = _.filter(activities, x => x.type === "Ride");
+        var rideSummary = this.buildTypeSummary(rides)
+
+        var runs = _.filter(activities, x => x.type === "Run");
+        var runSummary = this.buildTypeSummary(runs)
+
+        var summary = new Summary([rideSummary, runSummary]);
+
+        return summary;
+    }
+
+    fetchActivities(token: string): Promise<Activity[]> {
+        var url = this.baseUrl + "/athelete/activites";
+        return new Promise((resolve, reject) => {
+
+            let customHeaders = new Headers();
+            customHeaders.set("Authorization", "Bearer " + this.getAccessToken());
+
+            url = url + '?after=' + this.unixSeconds(-90, 'days');
+
+            this.http.get(url, { headers: customHeaders }).map(res => resolve(res.json()));
+        })
+    }
+
+    private buildTypeSummary(activities: Activity[]): TypeSummary {
+        let averageNum = activities.length / 7;
+
+        let averageDist = _.mean(_.map(activities, _.property('distance')));
+        let averagePace = _.mean(_.map(activities, _.property('average_speed')));
+        let topSpeed = _.maxBy(activities, 'max_speed').max_speed;
+        let farthest = _.maxBy(activities, 'distance').distance;
+        let longestTime = _.maxBy(activities, 'elapsed_time').elapsed_time;
+
+        if (activities[0].type === "Run") {
+            var distanceInMetres = _.sumBy(activities, 'distance');
+            var timeInMinutes = _.sumBy(activities, 'elapsed_time') / 60;
+
+            // average vdot? per week? going with total for now
+            var vdot = (-4.6 + (0.182258 * (distanceInMetres / timeInMinutes)) + (0.000104 * (distanceInMetres / timeInMinutes) * (distanceInMetres / timeInMinutes))) / (0.8 + (Math.exp(-0.012778 * timeInMinutes) * 0.1894394) + (Math.exp(-0.1932605 * timeInMinutes) * 0.2989558));
+
+            return new RunSummary(averageNum, averageDist, averagePace, topSpeed, farthest, longestTime, vdot);
+        }
+
+        return new TypeSummary(averageNum, averageDist, averagePace, topSpeed, farthest, longestTime);
+    }
+
+    private unixSeconds(num, type) {
+        return moment().add(num, type).unix();
+    }
+
+    private getAccessToken(): Promise<string> {
+        return this.storage.get("access_token");
+    }
+
+    private authorise(): Promise<string> {
 
         return new Promise((resolve, reject) => {
             let url = "https://www.strava.com/oauth/authorize?client_id=" + this.clientId + "&response_type=code&redirect_uri=http://localhost/token_exchange";
@@ -69,7 +117,7 @@ isLoggedIn: boolean;
         });
     }
 
-    exchangeToken(code: string): Promise<string> {
+    private exchangeToken(code: string): Promise<string> {
         return new Promise((resolve, reject) => {
             let url = "/api/strava-exchange";
             let data = JSON.stringify({
