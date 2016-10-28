@@ -61,7 +61,7 @@ export class Strava {
             let customHeaders = new Headers();
             customHeaders.set('Authorization', 'Bearer ' + token);
 
-            //url = url + '?after=' + this.unixSeconds(-90, 'days');
+            url = url + '?after=' + this.unixSeconds(-90, 'days');
 
             this.http.get(url, { headers: customHeaders })
                 .map(res => res.json())
