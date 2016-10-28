@@ -1,9 +1,11 @@
 import {TypeSummary} from './typeSummary'
 
 export class Summary {
-    private typeSummaries: TypeSummary[];
+    date: Date
+    typeSummaries: TypeSummary[];
 
     constructor(summaries: TypeSummary[]){
         this.typeSummaries = summaries;
+        this.date = new Date()
     }
 }

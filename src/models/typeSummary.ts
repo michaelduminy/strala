@@ -1,11 +1,11 @@
 export class TypeSummary{
 
-    private avgNumber: number;
-    private avgDistance: number;
-    private avgSpeed: number;
-    private maxSpeed: number;
-    private farthest: number;
-    private longestTime: number;
+    avgNumber: number;
+    avgDistance: number;
+    avgSpeed: number;
+    maxSpeed: number;
+    farthest: number;
+    longestTime: number;
 
     constructor(averageNum: number, averageDist: number, averagePace: number, topSpeed: number, farthest: number, longestTime: number){
         this.avgNumber = averageNum;
@@ -18,7 +18,7 @@ export class TypeSummary{
 }
 
 export class RunSummary extends TypeSummary {
-    private vdot: number;
+    vdot: number;
 
     constructor(averageNum: number, averageDist: number, averagePace: number, topSpeed: number, farthest: number, longestTime: number, vdot: number){
         super(averageNum, averageDist, averagePace, topSpeed, farthest, longestTime)

@@ -24,6 +24,7 @@ export class Strava {
             .then(code => {
                 return Promise.all([loader.present(), this.exchangeToken(code)])
             })
+            .then(x => x[1])
     }
 
     processNewActivities(): Promise<any> {
@@ -33,10 +34,10 @@ export class Strava {
             .then(summary => this.persistSummary(summary));
     }
 
-    private persistSummary(summary: Summary) {
+    private persistSummary(summary: Summary): Promise<any> {
         console.log(JSON.stringify(summary))
 
-        this.storage.set('summary', summary);
+        return this.storage.set('summary', summary);
     }
 
     private buildSummary(activities: Array<Activity>): any {
@@ -64,10 +65,7 @@ export class Strava {
 
             this.http.get(url, { headers: customHeaders })
                 .map(res => res.json())
-                .subscribe(
-                data => resolve(data),
-                error => reject(error)
-                )
+                .subscribe(data => resolve(data), error => reject(error))
         })
     }
 
@@ -82,17 +80,20 @@ export class Strava {
         let farthest = <number>_.max(_.map(activities, _.property('distance')));
         let longestTime = <number>_.max(_.map(activities, _.property('elapsed_time')));
 
-        var randomActivity = _.sample(activities);
+        let randomActivity = _.sample(activities);
         if (randomActivity && randomActivity.type === 'Run') {
 
-            var maxvdot = _.max(_.map(activities, x => {
-                return (-4.6 + (0.182258 * (x.distance / x.elapsed_time)) + (0.000104 * (x.distance / x.elapsed_time) * (x.distance / x.elapsed_time))) / (0.8 + (Math.exp(-0.012778 * x.elapsed_time) * 0.1894394) + (Math.exp(-0.1932605 * x.elapsed_time) * 0.2989558))
-            }))
-
+            let maxvdot = _.max(_.map(activities, x => this.calculateVdot(x.distance, x.elapsed_time)))
             return new RunSummary(averageNum, averageDist, averagePace, topSpeed, farthest, longestTime, maxvdot);
         }
 
         return new TypeSummary(averageNum, averageDist, averagePace, topSpeed, farthest, longestTime);
+    }
+
+    private calculateVdot(distance: number, time: number): number {
+        let dt = distance / time;
+        let vdot = (-4.6 + (0.182258 * dt) + (0.000104 * dt * dt)) / (0.8 + (Math.exp(-0.012778 * time) * 0.1894394) + (Math.exp(-0.1932605 * time) * 0.2989558))
+        return vdot;
     }
 
     private unixSeconds(num, type) {

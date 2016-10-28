@@ -36,7 +36,7 @@ export class LoginPage {
     return new Promise((resolve, reject) => {
       localStorage.setItem('loggedIn', 'true')
       this.storage.set('access_token', obj.access_token)
-      this.storage.set('profile', JSON.stringify(obj.athlete)).then(resolve())
+      this.storage.set('profile', JSON.stringify(obj.athlete)).then(resolve)
     })
   }
 }

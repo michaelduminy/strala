@@ -1,16 +1,73 @@
 <ion-header>
-
-  <ion-navbar>
-    <ion-title>Strala</ion-title>
-  </ion-navbar>
-
+	<ion-navbar>
+		<ion-title>Strala</ion-title>
+	</ion-navbar>
 </ion-header>
 
-<ion-content padding text-center>
-  <p padding>
-    Hi {{name}}!
-  </p>
-  <img [src]="pic">
+
+
+<ion-content padding>
+	<ion-item>
+		<ion-avatar item-left>
+			<img [src]="pic">
+		</ion-avatar>
+		<h2>{{name}}</h2>
+		<p>{{email}}</p>
+	</ion-item>
+
+	<ion-card [hidden]="">
+		<ion-item text-center>
+			Summary - {{summary?.date | date: 'dd/MM/yyyy'}}
+		</ion-item>
+		<ion-list>
+			<ion-list-header>
+				Rides
+			</ion-list-header>
+			<ion-item>
+				<p>Average number of rides per week: {{summary?.typeSummaries[0]?.avgNumber}}</p>
+			</ion-item>
+			<ion-item>
+				<p>Average distance per ride: {{summary?.typeSummaries[0]?.avgDistance}}</p>
+			</ion-item>
+			<ion-item>
+				<p>Average pace per ride: {{summary?.typeSummaries[0]?.avgSpeed}}</p>
+			</ion-item>
+			<ion-item>
+				<p>Fastest average pace for a ride: {{summary?.typeSummaries[0]?.maxSpeed}}</p>
+			</ion-item>
+			<ion-item>
+				<p>Longest ride distance: {{summary?.typeSummaries[0]?.farthest}}</p>
+			</ion-item>
+			<ion-item>
+				<p>Longest ride duration: {{summary?.typeSummaries[0]?.longestTime}}</p>
+			</ion-item>
+
+			<ion-list-header>
+				Runs
+			</ion-list-header>
+			<ion-item>
+				<p>Average number of runs per week: {{summary?.typeSummaries[1]?.avgNumber}}</p>
+			</ion-item>
+			<ion-item>
+				<p>Average distance per run: {{summary?.typeSummaries[1]?.avgDistance}}</p>
+			</ion-item>
+			<ion-item>
+				<p>Average pace per run: {{summary?.typeSummaries[1]?.avgSpeed}}</p>
+			</ion-item>
+			<ion-item>
+				<p>Fastest average pace for a run: {{summary?.typeSummaries[1]?.maxSpeed}}</p>
+			</ion-item>
+			<ion-item>
+				<p>Longest run distance: {{summary?.typeSummaries[1]?.farthest}}</p>
+			</ion-item>
+			<ion-item>
+				<p>Longest run duration: {{summary?.typeSummaries[1]?.longestTime}}</p>
+			</ion-item>
+			<!--<ion-item>
+				Highest VDOT: {{(summary?.typeSummaries[1]? as RunSummary).vdot}}
+			</ion-item>-->
+		</ion-list>
+	</ion-card>
+
+
 </ion-content>
-
-
